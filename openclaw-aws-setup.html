@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AWS環境でOpenClawを起動する手順書</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Share+Tech+Mono&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0a0a0f;
+      --bg-card: #12121a;
+      --bg-code: #0d0d14;
+      --neon-cyan: #00f5ff;
+      --neon-magenta: #ff00aa;
+      --neon-purple: #b366ff;
+      --neon-green: #00ff88;
+      --text-primary: #e0e0e8;
+      --text-muted: #8888a0;
+      --border-glow: rgba(0, 245, 255, 0.3);
+      --font-display: 'Orbitron', 'Noto Sans JP', sans-serif;
+      --font-mono: 'Share Tech Mono', 'Consolas', monospace;
+      --font-body: 'Noto Sans JP', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 2rem;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.75;
+      background-image:
+        radial-gradient(ellipse at 20% 20%, rgba(179, 102, 255, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(0, 245, 255, 0.06) 0%, transparent 50%),
+        linear-gradient(180deg, var(--bg-dark) 0%, #0f0f18 100%);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      padding: 3rem 0 2rem;
+      border-bottom: 1px solid var(--border-glow);
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      color: var(--neon-cyan);
+      text-shadow: 0 0 20px rgba(0, 245, 255, 0.4);
+      letter-spacing: 0.05em;
+      margin: 0 0 0.5rem;
+    }
+
+    header .subtitle {
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    h2 {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 1.35rem;
+      color: var(--neon-magenta);
+      margin: 2.5rem 0 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255, 0, 170, 0.3);
+    }
+
+    h3 {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: var(--neon-purple);
+      margin: 1.75rem 0 0.75rem;
+    }
+
+    h4 {
+      font-size: 1rem;
+      color: var(--neon-green);
+      margin: 1.25rem 0 0.5rem;
+      font-weight: 500;
+    }
+
+    p {
+      margin: 0 0 1rem;
+      color: var(--text-primary);
+    }
+
+    ul, ol {
+      margin: 0 0 1rem;
+      padding-left: 1.5rem;
+    }
+
+    li {
+      margin-bottom: 0.35rem;
+    }
+
+    a {
+      color: var(--neon-cyan);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    a:hover {
+      border-bottom-color: var(--neon-cyan);
+      color: #7effff;
+    }
+
+    .section {
+      background: var(--bg-card);
+      border: 1px solid rgba(0, 245, 255, 0.15);
+      border-radius: 8px;
+      padding: 1.5rem 1.75rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    pre, code {
+      font-family: var(--font-mono);
+      background: var(--bg-code);
+      color: var(--neon-green);
+      border: 1px solid rgba(0, 255, 136, 0.2);
+      border-radius: 4px;
+    }
+
+    pre {
+      padding: 1rem 1.25rem;
+      overflow-x: auto;
+      margin: 1rem 0;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    code {
+      padding: 0.15em 0.4em;
+      font-size: 0.9em;
+    }
+
+    pre code {
+      padding: 0;
+      background: none;
+      border: none;
+    }
+
+    .diagram {
+      background: var(--bg-code);
+      border: 1px solid var(--border-glow);
+      border-radius: 4px;
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      line-height: 1.6;
+      color: var(--neon-cyan);
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    blockquote {
+      margin: 1rem 0;
+      padding: 0.75rem 1rem 0.75rem 1rem;
+      border-left: 3px solid var(--neon-magenta);
+      background: rgba(255, 0, 170, 0.06);
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .checklist {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .checklist li::before {
+      content: "▸ ";
+      color: var(--neon-green);
+      font-weight: bold;
+      margin-right: 0.5rem;
+    }
+
+    .warning {
+      background: rgba(255, 180, 0, 0.08);
+      border: 1px solid rgba(255, 180, 0, 0.4);
+      border-radius: 4px;
+      padding: 0.75rem 1rem;
+      margin: 1rem 0;
+      font-size: 0.95rem;
+    }
+
+    .tip {
+      background: rgba(0, 255, 136, 0.06);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      border-radius: 4px;
+      padding: 0.75rem 1rem;
+      margin: 1rem 0;
+      font-size: 0.95rem;
+    }
+
+    /* スクリーンショット挿入用プレースホルダー */
+    .screenshot-placeholder {
+      min-height: 200px;
+      background: linear-gradient(135deg, rgba(0, 245, 255, 0.05) 0%, rgba(179, 102, 255, 0.05) 100%);
+      border: 2px dashed var(--neon-cyan);
+      border-radius: 8px;
+      margin: 1rem 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .screenshot-placeholder::before {
+      content: "📷 スクリーンショット挿入箇所";
+      display: block;
+    }
+
+    .screenshot-placeholder .label {
+      display: block;
+      margin-top: 0.5rem;
+      color: var(--neon-cyan);
+      font-size: 0.75rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      border: 1px solid rgba(0, 245, 255, 0.2);
+      padding: 0.6rem 0.8rem;
+      text-align: left;
+    }
+
+    th {
+      background: rgba(0, 245, 255, 0.1);
+      color: var(--neon-cyan);
+      font-family: var(--font-display);
+      font-weight: 600;
+    }
+
+    td {
+      color: var(--text-primary);
+    }
+
+    .toc {
+      background: var(--bg-card);
+      border: 1px solid rgba(179, 102, 255, 0.2);
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .toc h2 { margin-top: 0; }
+    .toc ul { list-style: none; padding-left: 0; }
+    .toc li { margin-bottom: 0.4rem; }
+    .toc a { color: var(--neon-purple); }
+
+    .ref-link {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem 0;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border-glow);
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>AWS環境でOpenClawを起動する手順書</h1>
+      <p class="subtitle">AWSアカウント作成 → EC2上でOpenClaw Gateway起動 → SSMポートフォワード → ローカルブラウザでDashboard操作</p>
+    </header>
+
+    <nav class="toc section">
+      <h2>📑 目次</h2>
+      <ul>
+        <li><a href="#section-0">0. 目的と完成イメージ</a></li>
+        <li><a href="#section-1">1. 事前準備チェックリスト</a></li>
+        <li><a href="#section-2">2. AWS側セットアップ</a></li>
+        <li><a href="#section-3">3. EC2上にOpenClawをインストール</a></li>
+        <li><a href="#section-4">4. OpenAI APIキーを設定</a></li>
+        <li><a href="#section-5">5. Gateway（Dashboard付き）を起動する</a></li>
+        <li><a href="#section-6">6. ローカルPCからSSMポートフォワードでDashboardを開く</a></li>
+        <li><a href="#section-7">7. デモ（nginxインストール＆起動）</a></li>
+        <li><a href="#section-8">8. 終了時：コストを残さない片付け</a></li>
+        <li><a href="#section-9">9. つまずき集</a></li>
+      </ul>
+    </nav>
+
+    <!-- ========== 0. 目的と完成イメージ ========== -->
+    <section id="section-0" class="section">
+      <h2>0. 目的と完成イメージ</h2>
+
+      <h3>できるようになること</h3>
+      <ul class="checklist">
+        <li>ローカルPCにOpenClawを入れずに、<strong>AWS上の隔離環境（EC2）</strong>でOpenClawを動かす</li>
+        <li>でもOpenClawの操作は<strong>ローカルPC</strong>からできる！</li>
+      </ul>
+
+      <h3>なぜAWS隔離が良いの？</h3>
+      <p>OpenClawは"OS操作"を含む強い権限を扱うことが多く、Microsoftも「通常のワークステーションではなく、隔離環境での運用」を推奨する趣旨の注意喚起を出しています。<br>
+      <a href="https://www.microsoft.com/en-us/security/blog/2026/02/19/running-openclaw-safely-identity-isolation-runtime-risk/" target="_blank" rel="noopener">Microsoft - Running OpenClaw safely</a><br>
+      もしローカルPCでプロンプトインジェクションを受けた場合、大事なデータを勝手に送信してしまう可能性があります。
+
+      <h3>全体図</h3>
+      <div class="screenshot-placeholder">
+        <span class="label">（任意）構成図のスクリーンショットや図解をここに配置</span>
+      </div>
+      <div class="diagram">(ローカルPC) ブラウザ
+   │  http://localhost:19001
+   │
+   ├─(ローカルPC) aws ssm start-session でポートフォワード
+   │
+   ▼
+(AWS) Systems Manager Session Manager（インターネット公開不要）
+   │
+   ▼
+(EC2) OpenClaw Gateway（Dashboard/Control UI 付き）</div>
+    </section>
+
+    <!-- ========== 1. 事前準備チェックリスト ========== -->
+    <section id="section-1" class="section">
+      <h2>1. 事前準備チェックリスト（最初に読む）</h2>
+
+      <h3>使うもの</h3>
+      <ul>
+        <li>ローカルPC：Mac（自分はMacでやりました。手順書もMac向けです🙇）</li>
+        <li>AWS：新規アカウント（Free Plan/$100-200USDのクレジットあり）</li>
+        <li>OpenAI APIキー（例：<code>OPENAI_API_KEY</code>）</li>
+      </ul>
+
+      <h3>コストの考え方（安心材料）</h3>
+      AWSやOpenAIの利用はお金がどれくらいかかるか怖いですよね。。。
+      <ul>
+        <li>AWSについてはFree Planというものがあり、その期間であれば無料なので大丈夫です!</li>
+        <li>新規アカウントには <strong>最大$200付与</strong>の仕組みがあります。Free Planから変更しなければ、そのクレジット内であれば全て無料です。（<a href="https://aws.amazon.com/blogs/aws/aws-free-tier-update-new-customers-can-get-started-and-explore-aws-with-up-to-200-in-credits/" target="_blank" rel="noopener">AWS Free Tier update</a>）</li>
+      </ul>
+    </section>
+
+    <!-- ========== 2. AWS側セットアップ ========== -->
+    <section id="section-2" class="section">
+      <h2>2. AWS側セットアップ</h2>
+
+      <h3>2-1. AWSアカウントの作成（初心者向け）</h3>
+      <p>まだAWSアカウントを持っていない場合は、まずアカウントを作成します。</p>
+      <ol>
+        <li><a href="https://aws.amazon.com/jp/" target="_blank" rel="noopener">AWS 公式サイト</a>から「アカウント作成」を開始</li>
+        <li>メールアドレス・パスワード・AWSアカウント名を設定</li>
+        <li>連絡先情報・支払い情報（クレジットカード等）を入力（Free Tier でも入力は必要です）</li>
+        <li>本人確認（電話またはSMS）を完了すると、アカウントが有効化されます</li>
+      </ol>
+      <div class="warning">
+        <strong>⚠️ 重要：ルートアカウントで作業しないこと</strong><br>
+        作成直後は「ルート」という権限がすべてあるアカウントでログインした状態です。このルートアカウントで日々の作業（EC2作成・IAM操作など）をしてしまうと、誤操作や漏洩時に被害が大きくなります。AWSも「日常の作業はIAMユーザーで行う」ことを推奨しています。<br>
+        → 次の 2-2 で<strong>IAMユーザーを作成し、適切なポリシーを付与したうえで、そのユーザーで作業</strong>するようにしてください。
+      </div>
+
+      <div class="screenshot-placeholder">
+        <span class="label">AWSアカウント作成完了後のコンソール画面（ルートでログインした状態）のスクリーンショット</span>
+      </div>
+
+      <h3>2-2. IAMユーザーを作成し、適切なポリシーを付与する（作業はこのユーザーで行う）</h3>
+      <p>上記のとおり、<strong>ルートではなくIAMユーザーで作業</strong>するため、ここで「作業用」のIAMユーザーを作成します。この手順書の以降の操作（EC2・SSM・コンソール・CLI）は、すべてこのIAMユーザーで行います。</p>
+      <ol>
+        <li>AWSコンソールにルートでログインした状態で、<strong>IAM</strong> → <strong>ユーザー</strong> → <strong>ユーザーを作成</strong></li>
+        <li>ユーザー名（例：<code>openclaw-operator</code>）を入力</li>
+        <li>「許可の設定」
+          <ul>
+            <li>方式：<strong>ポリシーを直接アタッチ</strong></li>
+            <li>ポリシー：<code>AdministratorAccess</code> をチェック（検証用として一通りの操作ができるようにするため。本番運用では最小権限のポリシーに変更することを推奨）</li>
+          </ul>
+        </li>
+        <li>作成後、そのユーザー用の<strong>アクセスキー</strong>（プログラムによるアクセス用）を作成し、アクセスキーIDとシークレットを安全に保管。ローカルの <code>aws configure</code> ではこのキーを使います</li>
+        <li>コンソールの操作もルートから<strong>サインアウト</strong>し、作成したIAMユーザーで<strong>サインイン</strong>してください</li>
+      </ol>
+      <blockquote>レクチャー後や本番運用では、最小権限のポリシーに変更するか、このユーザーを無効化・削除する運用にすると安全です。</blockquote>
+
+      <div class="screenshot-placeholder">
+        <span class="label">IAM ユーザー作成画面（許可の設定で AdministratorAccess をアタッチ）のスクリーンショット</span>
+      </div>
+
+      <h3>2-3. まず "リージョン" を決める（超重要）</h3>
+
+      <div class="tip">
+      <h4>リージョンとは？</h4>
+      <p><strong>リージョン</strong>は、AWSのサーバーが実際に置かれている「場所」の単位です。東京、バージニア（米東部）、シドニーなど、世界中に複数のリージョンがあり、それぞれに名前（リージョンコード）が付いています。</p>
+      <ul>
+        <li><strong>例</strong>：東京 → <code>ap-northeast-1</code>、大阪 → <code>ap-northeast-3</code>、シドニー → <code>ap-southeast-2</code></li>
+        <li>EC2やS3などのリソースは「どのリージョンに作るか」を選ぶ必要があり、<strong>リージョンが違えば別のリソース</strong>として扱われます（東京のEC2とシドニーのEC2は別物です）。</li>
+        <li>コンソール（ブラウザ）で表示しているリージョンと、ローカルPCのAWS CLIで指定しているリージョンが<strong>一致していない</strong>と、「そのリージョンにはそのインスタンスがありません」となり、この手順書で後から使うSSMのポートフォワードで <code>TargetNotConnected</code> というエラーが出やすくなります。</li>
+      </ul>
+      <p>そのため、<strong>最初に「どこのリージョンで作業するか」を1つ決めて、コンソールもCLIもそのリージョンで統一</strong>することがとても重要です。</p>
+    </div>
+      <h4>手順：リージョンを1つ決めて統一する</h4>
+      <ul>
+        <li><strong>EC2を作るリージョン</strong>：AWSコンソール右上のリージョン表示をクリックし、使うリージョンを選ぶ（例：東京 <code>ap-northeast-1</code> / シドニー <code>ap-southeast-2</code>）。このリージョンでEC2やIAMの操作を行います。</li>
+        <li><strong>ローカルAWS CLIのリージョン</strong>：後述の <code>aws configure</code> で設定する <code>region</code> を、<strong>上で選んだリージョンと同じ</strong>にします。</li>
+      </ul>
+      
+      <div class="screenshot-placeholder">
+        <span class="label">AWSコンソール右上のリージョン選択のスクリーンショット</span>
+      </div>
+
+      <h3>2-4. EC2にSSMで入るためのロールを作成（必須）</h3>
+
+      <div class="tip">
+      <h4>ロールとは？</h4>
+      <p><strong>ロール（IAMロール）</strong>は、AWSのリソースに「どのサービスが」「どんな権限で」アクセスしてよいかをまとめた<strong>権限セット</strong>です。</p>
+      <ul>
+        <li>人間が使うのは「IAMユーザー」ですが、<strong>EC2インスタンスなどのAWSリソース自体</strong>にも「AWSの中の別サービスにアクセスする権限」が必要になることがあります。</li>
+        <li>今回のケースでは、EC2が<strong>Systems Manager（SSM）</strong>と通信できるようにするための権限が必要です。</li>
+        <li>その「EC2に付ける権限のかたまり」が <strong>IAMロール</strong> であり、EC2にロールをアタッチすることで、「このEC2はSSMとやり取りしてよい」ということをAWS側に伝えます。</li>
+      </ul>
+      <p>このロールがないと、EC2がSSMと接続できず、<strong>ブラウザからのポートフォワードやSession Manager接続ができません</strong>。そのため、このステップは必須です。セキュリティのためですね！</p>
+    </div>
+
+      <h4>手順：SSM接続用ロールを作成する</h4>
+      <ol>
+        <li>AWSコンソールで <strong>IAM</strong> を開き、左メニューから <strong>ロール</strong> → <strong>ロールを作成</strong> を選択</li>
+        <li>「信頼されたエンティティの種類」で <strong>AWSサービス</strong> を選び、ユースケースに <strong>EC2</strong> を選択</li>
+        <li>「許可ポリシーをアタッチ」で、検索欄に <code>AmazonSSMManagedInstanceCore</code> と入力し、そのポリシーにチェックを入れる（SSMの基本的な権限のセットです）<br>
+          <a href="https://docs.aws.amazon.com/ja_jp/systems-manager/latest/userguide/agent-install-al2.html" target="_blank" rel="noopener" class="ref-link">AWS ドキュメント - SSM Agent</a></li>
+        <li>ロール名を例として <code>EC2-SSM-Role</code> とし、内容を確認して作成</li>
+      </ol>
+
+      <div class="screenshot-placeholder">
+        <span class="label">IAM ロール作成（信頼ポリシー・許可ポリシー）のスクリーンショット</span>
+      </div>
+
+      <h3>2-5. EC2を作成（OpenClaw用）</h3>
+      <div class="tip">
+        <h4>EC2とは？（何を作るステップか）</h4>
+        <p><strong>EC2（Elastic Compute Cloud）</strong>は、AWSが提供する「クラウド上の仮想サーバー」です。自分のPCとは別に、AWS上にもう1台パソコンを借りるイメージです。</p>
+        <ul>
+          <li>OS（ここでは Amazon Linux 2023）を選んで起動し、そこでソフトウェア（今回だと OpenClaw）を動かします。</li>
+          <li>ブラウザで開く Dashboard の裏側では、このEC2上で OpenClaw の Gateway プロセスが動いています。</li>
+          <li>この手順では、<strong>OpenClaw専用の一時的なEC2</strong> を1台だけ立てて、検証が終わったらTerminate（削除）する前提です。</li>
+        </ul>
+        <p>ここで作るEC2の性能（インスタンスタイプ）やディスクサイズによって、OpenClawの動きやすさやコストが変わります。</p>
+        借りるパソコンのスペックを選ぶ感じです！
+      </div>
+
+      <h4>推奨インスタンス</h4>
+      <p><strong>t3.small</strong>（OpenClawはそれなりに重いので micro だとハマりやすい）</p>
+
+      <h4>作成手順（EC2 起動ウィザード）</h4>
+      <ol>
+        <li>EC2 → <strong>インスタンスを起動</strong></li>
+        <li>AMI：<strong>Amazon Linux 2023</strong></li>
+        <li>インスタンスタイプ：<strong>t3.small</strong></li>
+        <li>キーペア：<strong>作らなくてOK</strong>（SSHしないので）</li>
+        <li>ネットワーク（セキュリティグループ）
+          <ul>
+            <li>inbound から <strong>SSH(22) を削除</strong></li>
+            <li>結果：<strong>インバウンドルールなし</strong>（これが正解）</li>
+          </ul>
+        </li>
+        <li>IAMインスタンスプロファイル：<code>EC2-SSM-Role</code> を選択</li>
+        <li>ストレージ：20GB程度でOK</li>
+        <li>タグ（任意・消し忘れ防止）
+          <ul>
+            <li>Name = <code>openclaw-lab</code></li>
+            <li>Owner = （名前）</li>
+            <li>AutoDeleteAt = （日時）</li>
+          </ul>
+        </li>
+      </ol>
+
+      <div class="screenshot-placeholder">
+        <span class="label">EC2 インスタンス起動ウィザード（AMI・インスタンスタイプ・SG・IAM）のスクリーンショット</span>
+      </div>
+
+      <h3>2-6. SSMでEC2に接続（SSH不要）</h3>
+      <ol>
+        <li>EC2 → インスタンス選択 → <strong>接続</strong></li>
+        <li><strong>Session Manager</strong> タブ → 接続</li>
+      </ol>
+      <p><strong>もし接続できないとき</strong><br>EC2側にSSM Agentが必要です。Amazon Linux 2023なら基本入っていますが、確認コマンド：</p>
+      <pre><code>sudo systemctl status amazon-ssm-agent --no-pager</code></pre>
+
+      <div class="screenshot-placeholder">
+        <span class="label">EC2「接続」→ Session Manager タブのスクリーンショット</span>
+      </div>
+    </section>
+
+    <!-- ========== 3. EC2上にOpenClawをインストール ========== -->
+    <section id="section-3" class="section">
+      <h2>3. EC2上にOpenClawをインストール（公式インストーラー推奨）</h2>
+      <p>チーム初心者には <strong>公式インストーラーが最短</strong>です。OpenClaw公式は「インストーラーでNode検出〜導入〜オンボードまで」を推奨しています。（<a href="https://docs.openclaw.ai/install" target="_blank" rel="noopener">Install - OpenClaw Docs</a>）</p>
+
+      <h3>3-1. 必要パッケージ</h3>
+      <pre><code>sudo dnf update -y
+sudo dnf install -y curl git</code></pre>
+
+      <h3>3-2. OpenClaw公式インストーラーで導入</h3>
+      <pre><code>curl -fsSL https://openclaw.ai/install.sh | bash</code></pre>
+      <blockquote>✅ もし「root権限なしで入れたい」場合は <code>install-cli.sh</code> のほうが合うケースがあります（<a href="https://docs.openclaw.ai/install/installer" target="_blank" rel="noopener">Installer Internals - OpenClaw Docs</a>）</blockquote>
+
+      <div class="screenshot-placeholder">
+        <span class="label">インストーラー実行後のターミナル出力のスクリーンショット</span>
+      </div>
+    </section>
+
+    <!-- ========== 4. OpenAI APIキーを設定 ========== -->
+    <section id="section-4" class="section">
+      <h2>4. OpenAI APIキーを設定（OpenClawがモデルを使えるようにする）</h2>
+      <p>OpenClawはOpenAIをプロバイダとして使えます。（<a href="https://docs.openclaw.ai/providers/openai" target="_blank" rel="noopener">OpenAI - OpenClaw Docs</a>）</p>
+
+      <h3>4-1. まずはAPIキーを用意する（考え方）</h3>
+      <div class="warning">
+        ⚠️ キーはチャットや画面共有で読み上げない・貼らないでください。GitHubなどのソースコード管理にも絶対にコミットしないようにします。
+      </div>
+      <p>
+        OpenClawでOpenAIを使うには、<strong>OpenAIのAPIキー</strong>が1つ必要です。<br>
+        この手順書では、<strong>OpenClawのオンボード（設定ウィザード）でAPIキーを直接入力する方式</strong>を前提にします。
+      </p>
+
+      <h3>4-2. OpenClawのオンボード/設定ウィザード</h3>
+      <p>OpenClawには <strong>configure</strong> または <strong>onboard</strong> というウィザードがあり、対話形式でAPIキー入力や初期設定を誘導してくれます。（<a href="https://docs.openclaw.ai/reference/wizard" target="_blank" rel="noopener">Onboarding Wizard Reference - OpenClaw Docs</a>）</p>
+
+      <p>EC2上で次を実行すると、ウィザードが始まります。</p>
+      <pre><code>openclaw configure</code></pre>
+      <p>（<code>openclaw onboard</code> でも同様の流れです）</p>
+
+      <h4>ウィザードで聞かれる主な項目（何を選べばよいか）</h4>
+      <p>実行すると、順番に次のような質問や選択肢が出ます。この手順書では「OpenAI を使って OpenClaw を動かす」前提で進めるので、次のように答えれば問題ありません。</p>
+      <ul>
+        <li><strong>プロバイダ／モデルの選択</strong> … 利用するAIプロバイダを選びます。ここでは <strong>OpenAI</strong> を選びます。</li>
+        <li><strong>APIキーの入力</strong> … OpenAIのAPIキー（<code>sk-...</code> で始まる文字列）を、表示されたプロンプトにコピー＆ペーストで入力します。入力中は画面に表示されないことがありますが、そのまま入力してEnterでOKです。</li>
+        <li><strong>デフォルトモデル</strong> … 使用するモデル（例：gpt-4o, gpt-4o-mini など）を選ぶか、候補から選びます。よく分からなければ表示されているデフォルトのままで大丈夫です。</li>
+        <li><strong>ワークスペース</strong> … エージェント用のファイルを置く場所を聞かれることがあります。そのまま既定のパスで問題ありません。</li>
+        <li><strong>Gateway（ポート・認証など）</strong> … 後で <code>openclaw --dev gateway run</code> を使う場合は、ここは既定のままでかまいません。</li>
+        <li><strong>その他（スキル・デーモン・チャネルなど）</strong> … スキルの導入やバックグラウンドサービス、チャット連携などが聞かれる場合があります。まずは「スキップ」や既定の選択で進めてよいです。必要になったらあとから設定できます。</li>
+      </ul>
+      <p>途中で分からなくなったら、その項目で <strong>Enter を押すとよく使われる既定値が選ばれる</strong>ことが多いので、まずは Enter で進めてみてください。ウィザードが終わると、OpenAI のAPIキーやモデル設定が保存され、次のステップ（Gateway 起動）に進めます。</p>
+
+      <div class="screenshot-placeholder">
+        <span class="label">openclaw configure / onboard の画面（プロバイダ選択・APIキー入力・モデル選択など）のスクリーンショット</span>
+      </div>
+    </section>
+
+    <!-- ========== 5. Gateway起動 ========== -->
+    <section id="section-5" class="section">
+      <h2>5. Gateway（Dashboard付き）を起動する</h2>
+      <p>OpenClawのGatewayは、<strong>WebSocket制御/RPC + HTTP API + Control UI</strong> などを1プロセスで提供する設計です。（<a href="https://docs.openclaw.ai/gateway" target="_blank" rel="noopener">Gateway Runbook - OpenClaw Docs</a>）</p>
+
+      <h3>5-1. "devプロファイル" で起動（チーム検証に便利）</h3>
+      <p><code>--dev</code> は状態を <code>~/.openclaw-dev</code> に隔離し、ポートもdev用に分離します（例：19001）。</p>
+      <pre><code>openclaw --dev gateway run</code></pre>
+      <blockquote>既に何かがポートを掴んでいたら <code>--force</code> が使える場合があります（helpにも例が出ます）</blockquote>
+
+      <h3>5-2. DashboardのURLを確認（これが確実）</h3>
+      <pre><code>openclaw --dev dashboard</code></pre>
+      <p>ここで例えば <code>Dashboard URL: http://127.0.0.1:19001/</code> のように出ます。</p>
+
+      <div class="screenshot-placeholder">
+        <span class="label">gateway run と dashboard コマンドの出力のスクリーンショット</span>
+      </div>
+    </section>
+
+    <!-- ========== 6. SSMポートフォワード ========== -->
+    <section id="section-6" class="section">
+      <h2>6. ローカルPCからSSMポートフォワードでDashboardを開く</h2>
+      <p>SSMポートフォワードは <code>portNumber</code>（EC2側）と <code>localPortNumber</code>（ローカル側）で指定します。（<a href="https://docs.aws.amazon.com/ja_jp/systems-manager/latest/userguide/session-manager-working-with-sessions-start.html" target="_blank" rel="noopener">セッションを開始する - AWS Systems Manager</a>）</p>
+
+      <h3>6-1. ローカルMacにAWS CLIを入れる</h3>
+      <pre><code>brew install awscli</code></pre>
+      <pre><code>aws --version</code></pre>
+      <p>Session Manager plugin が必要な場合：</p>
+      <pre><code>brew install session-manager-plugin
+session-manager-plugin --version</code></pre>
+
+      <h3>6-2. aws configure（アクセスキー方式）</h3>
+      <p>IAMユーザーでアクセスキーを作り、ローカルに設定：</p>
+      <pre><code>aws configure</code></pre>
+      <ul>
+        <li>region：<strong>EC2を作ったリージョンと同じ</strong>（例：<code>ap-northeast-1</code> or <code>ap-southeast-2</code>）</li>
+        <li>output：json</li>
+      </ul>
+
+      <h3>6-3. ポートフォワード開始（例：19001）</h3>
+      <p>EC2インスタンスID（<code>i-...</code>）を指定します。</p>
+      <pre><code>aws ssm start-session \
+  --region &lt;EC2のリージョン&gt; \
+  --target i-xxxxxxxxxxxxxxxxx \
+  --document-name AWS-StartPortForwardingSession \
+  --parameters '{"portNumber":["19001"],"localPortNumber":["19001"]}'</code></pre>
+      <p>この状態でターミナルは「待機」になります（正常）。</p>
+
+      <div class="screenshot-placeholder">
+        <span class="label">aws ssm start-session でポートフォワードが「待機」になっているターミナルのスクリーンショット</span>
+      </div>
+
+      <h3>6-4. ローカルブラウザで開く</h3>
+      <pre><code>http://localhost:19001/</code></pre>
+
+      <div class="screenshot-placeholder">
+        <span class="label">ブラウザで OpenClaw Dashboard が表示されているスクリーンショット</span>
+      </div>
+    </section>
+
+    <!-- ========== 7. デモ ========== -->
+    <section id="section-7" class="section">
+      <h2>7. デモ（おすすめ：nginxインストール＆起動）</h2>
+
+      <h3>7-1. Dashboardから指示（例）</h3>
+      <p>チャット欄に下を貼る：</p>
+      <blockquote>Install nginx on this machine, start the service, then show the service status and nginx version.<br>Use minimal commands.</blockquote>
+
+      <h3>7-2. "勝手にOS操作"を安全に見せるコツ：Exec approvals</h3>
+      <p>OpenClawは危険操作を防ぐため、実行に承認を要求する仕組み（approvals）があります。（<a href="https://docs.openclaw.ai/tools/exec" target="_blank" rel="noopener">Exec Tool - OpenClaw</a>）<br>デモでは「承認が必要な設計＝安全寄り」を見せると説得力が上がります。</p>
+      <ul>
+        <li><strong>安全寄り（推奨）</strong>：承認が出たらDashboard/CLIで approve</li>
+        <li><strong>デモ速度優先</strong>：自動承認（ただし危険なので社内検証では注意）</li>
+      </ul>
+
+      <h3>7-3. 人間が最後に確認（締めがキレイ）</h3>
+      <p>EC2側（SSM接続）で：</p>
+      <pre><code>sudo systemctl status nginx --no-pager
+nginx -v</code></pre>
+
+      <div class="screenshot-placeholder">
+        <span class="label">Dashboardでnginxインストール指示と承認フローのスクリーンショット</span>
+      </div>
+    </section>
+
+    <!-- ========== 8. 終了時 ========== -->
+    <section id="section-8" class="section">
+      <h2>8. 終了時：コストを残さない片付け（最重要）</h2>
+
+      <h3>8-1. EC2をTerminate（削除）</h3>
+      <p>Stopではなく <strong>Terminate</strong>（完全削除が安全）</p>
+
+      <h3>8-2. EBSボリュームが残ってないか確認</h3>
+      <p>EC2 → <strong>ボリューム</strong> → 残っていたら削除</p>
+
+      <h3>8-3. Elastic IPが無いか確認</h3>
+      <p>EC2 → <strong>Elastic IP</strong> → あれば解放（今回は通常作ってないはず）</p>
+
+      <div class="screenshot-placeholder">
+        <span class="label">インスタンスの終了（Terminate）確認画面のスクリーンショット</span>
+      </div>
+    </section>
+
+    <!-- ========== 9. つまずき集 ========== -->
+    <section id="section-9" class="section">
+      <h2>9. つまずき集（今回ハマりやすいところ）</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>現象</th>
+            <th>原因・対処</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>A) TargetNotConnected</strong></td>
+            <td><strong>AWS CLIのリージョンとEC2のリージョン不一致</strong>が最頻出。<code>--region</code> を明示して合わせる。</td>
+          </tr>
+          <tr>
+            <td><strong>B) ブラウザで unauthorized</strong></td>
+            <td>それは「Dashboard」じゃなく「browser control（auth=token）」に当たってる可能性大。<code>openclaw --dev dashboard</code> で <strong>正しいURLとポート</strong>を必ず確認。</td>
+          </tr>
+          <tr>
+            <td><strong>C) ポートフォワードが「Connection to destination port failed」</strong></td>
+            <td>EC2側でそのポートがLISTENしてない。<code>openclaw --dev gateway run</code> を起動しているか確認。<code>ss -ltnp | grep 19001</code> で待受確認。</td>
+          </tr>
+          <tr>
+            <td><strong>D) コストがすぐ反映されない</strong></td>
+            <td>請求/クレジットは遅延反映があり得る。新規クレジットは条件で増えることもある。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer>
+      <p>AWS環境でOpenClawを起動する手順書 — 隔離環境での安全な検証を</p>
+    </footer>
+  </div>
+</body>
+</html>
